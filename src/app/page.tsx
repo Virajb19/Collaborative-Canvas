@@ -5,6 +5,7 @@ import { Pencil, Users, Zap, ArrowRight, Sparkles, MousePointer2, Palette, Star 
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { useSession } from 'next-auth/react';
+import { CreateRoomDialog, JoinRoomDialog } from '~/components/RoomDialog';
 
 const STAR_COLORS = [
   "text-red-400 fill-red-300",
@@ -117,6 +118,9 @@ const Index = () => {
   // if (roomId) {
   //   return <CollaborativeCanvas roomId={roomId} />;
   // }
+
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
 
   const {data: session} = useSession()
 
@@ -359,7 +363,7 @@ const particles = [
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.65 }}
-                className="block mt-2 bg-linear-to-r from-primary via-[hsl(var(--user-indigo))] to-[hsl(var(--user-purple))] bg-clip-text text-transparent bg-[length:200%_auto]"
+                className="block mt-2 bg-linear-to-r from-blue-300 via-[hsl(var(--user-indigo))] to-[hsl(var(--user-purple))] bg-clip-text text-transparent bg-size-[200%_auto]"
                 style={{
                   animation: 'gradient-shift 4s ease infinite',
                 }}
@@ -392,13 +396,13 @@ const particles = [
                 initial={{ opacity: 0, y: 20, scale: 0.8 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ 
-                  duration: 0.4, 
+                  duration: 0.5, 
                   delay: 0.9 + i * 0.08,
                   ease: 'easeInOut'
                 }}
                 whileHover={{ 
-                  scale: 1.08, 
-                  y: -2,
+                  // scale: 1.08, 
+                  y: -5,
                   transition: { duration: 0.2 }
                 }}
                 className="group relative text-center p-4 rounded-2xl bg-white backdrop-blur-lg border border-transparent hover:border-blue-400 hover:bg-white/20 transition-colors duration-300 cursor-default overflow-hidden"
@@ -421,7 +425,7 @@ const particles = [
                   />
                 </div>
                 <p className="text-lg font-semibold text-foreground">{feature.label}</p>
-                <p className="text-sm text-muted-foreground mt-0.5">{feature.desc}</p>
+                <p className="text-sm font-medium text-gray-600 mt-0.5">{feature.desc}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -441,7 +445,7 @@ const particles = [
               <motion.button
                 whileHover={{ scale: 1.02, boxShadow: '0 20px 40px -10px hsl(var(--primary) / 0.4)' }}
                 whileTap={{ scale: 0.98 }}
-                // onClick={generateRoomId}
+                onClick={() => setCreateDialogOpen(true)}
                 className="w-full relative bg-linear-to-r from-blue-300 via-[hsl(var(--user-indigo))] to-[hsl(var(--user-purple))] text-white py-5 px-8 rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl shadow-primary/30 overflow-hidden group cursor-pointer"
               >
                 {/* Shimmer effect */}
@@ -475,59 +479,13 @@ const particles = [
                 </div>
               </div>
 
-              <AnimatePresence mode="wait">
-                {/* {isJoining ? (
-                  <motion.div
-                    key="input"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex gap-3"
-                  >
-                    <input
-                      type="text"
-                      value={inputRoomId}
-                      onChange={(e) => setInputRoomId(e.target.value.toUpperCase())}
-                      placeholder="ROOM ID"
-                      className="flex-1 px-6 py-5 bg-secondary/60 border border-border/60 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-center text-xl tracking-[0.3em] uppercase transition-all duration-200"
-                      maxLength={6}
-                      autoFocus
-                      // onKeyDown={(e) => e.key === 'Enter' && joinRoom()}
-                    />
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      // onClick={joinRoom}
-                      // disabled={!inputRoomId.trim()}
-                      className="px-6 py-5 bg-foreground text-background rounded-2xl font-medium transition-all duration-200 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"
-                    >
-                      <ArrowRight className="w-6 h-6" />
-                    </motion.button>
-                  </motion.div>
-                ) : (
                   <motion.button
                     key="button"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    // onClick={() => setIsJoining(true)}
-                    className="w-full bg-secondary/80 hover:bg-secondary text-secondary-foreground py-5 px-8 rounded-2xl font-semibold text-lg transition-all duration-200 border border-border/50 hover:border-border"
-                  >
-                    Join a Room
-                  </motion.button>
-                )} */}
-              </AnimatePresence>
-
-                  <motion.button
-                    key="button"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    // onClick={() => setIsJoining(true)}
-                    whileHover={{scale: 1.01, y: -7}}
+                     onClick={() => setJoinDialogOpen(true)}
+                      whileHover={{scale: 1.01, y: -7}}
                     className="w-full bg-[#E7E9EC] hover:bg-secondary text-secondary-foreground py-5 px-8 rounded-2xl font-semibold text-lg transition-all duration-200 border border-transparent hover:border-gray-300 cursor-pointer"
                   >
                     Join a Room
@@ -553,6 +511,15 @@ const particles = [
           </motion.p>
         </motion.div>
       </div>
+
+       <CreateRoomDialog
+        open={createDialogOpen} 
+        onOpenChange={setCreateDialogOpen}
+      />
+      <JoinRoomDialog
+        open={joinDialogOpen} 
+        onOpenChange={setJoinDialogOpen}
+      />
 
       {/* CSS for gradient animation */}
       <style>{`
