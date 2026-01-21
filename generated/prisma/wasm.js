@@ -97,19 +97,41 @@ exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   username: 'username',
   email: 'email',
-  emailVerified: 'emailVerified',
   password: 'password',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   lastLogin: 'lastLogin',
-  ProfilePicture: 'ProfilePicture',
-  OauthProvider: 'OauthProvider',
-  OauthId: 'OauthId'
+  profilePicture: 'profilePicture',
+  oauthProvider: 'oauthProvider',
+  oauthId: 'oauthId'
+};
+
+exports.Prisma.RoomScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  name: 'name',
+  passcode: 'passcode',
+  canvasData: 'canvasData',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RoomMemberScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  roomId: 'roomId',
+  role: 'role',
+  joinedAt: 'joinedAt'
 };
 
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -121,13 +143,26 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
 exports.OauthProvider = exports.$Enums.OauthProvider = {
   GOOGLE: 'GOOGLE',
   GITHUB: 'GITHUB'
 };
 
+exports.UserRole = exports.$Enums.UserRole = {
+  OWNER: 'OWNER',
+  GUEST: 'GUEST'
+};
+
 exports.Prisma.ModelName = {
-  User: 'User'
+  User: 'User',
+  Room: 'Room',
+  RoomMember: 'RoomMember'
 };
 /**
  * Create the Client
@@ -168,7 +203,6 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
-  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -177,13 +211,13 @@ const config = {
       }
     }
   },
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nenum OauthProvider {\n  GOOGLE\n  GITHUB\n}\n\nmodel User {\n  id            Int       @id @default(autoincrement())\n  username      String    @unique\n  email         String?   @unique\n  emailVerified DateTime?\n  password      String?\n\n  createdAt      DateTime @default(now())\n  updatedAt      DateTime @updatedAt\n  lastLogin      DateTime @default(now())\n  ProfilePicture String?  @default(\"\")\n\n  OauthProvider OauthProvider?\n  OauthId       String?\n}\n",
-  "inlineSchemaHash": "3e4e71744cd7145a61ad510001390900158b22217ccbc7a69cbf4f7a42c2217a",
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\n// Enums\nenum OauthProvider {\n  GOOGLE\n  GITHUB\n}\n\nenum UserRole {\n  OWNER\n  GUEST\n}\n\n// Models\nmodel User {\n  id       Int     @id @default(autoincrement())\n  username String  @unique\n  email    String? @unique\n  password String?\n\n  createdAt      DateTime @default(now())\n  updatedAt      DateTime @updatedAt\n  lastLogin      DateTime @default(now())\n  profilePicture String?  @default(\"\")\n\n  oauthProvider OauthProvider?\n  oauthId       String?\n\n  // Relations\n  roomMemberships RoomMember[]\n}\n\nmodel Room {\n  id       String  @id @default(cuid())\n  roomId   String  @unique // 6-char alphanumeric code\n  name     String?\n  passcode String // hashed passcode\n\n  canvasData Json?\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  // Relations\n  members RoomMember[]\n\n  @@index([roomId])\n}\n\nmodel RoomMember {\n  id Int @id @default(autoincrement())\n\n  userId Int\n  roomId String\n  role   UserRole @default(GUEST)\n\n  joinedAt DateTime @default(now())\n\n  // Relations\n  user User @relation(fields: [userId], references: [id], onDelete: Cascade)\n  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)\n\n  @@unique([userId, roomId]) // user can join a room only once\n  @@index([roomId])\n  @@index([userId])\n}\n",
+  "inlineSchemaHash": "e92b993ce816a7bb47817c29f89a2aa9720d878e901f1c657551b7b08d59af81",
   "copyEngine": true
 }
 config.dirname = '/'
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"username\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"emailVerified\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"lastLogin\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"ProfilePicture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"OauthProvider\",\"kind\":\"enum\",\"type\":\"OauthProvider\"},{\"name\":\"OauthId\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"username\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"lastLogin\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"profilePicture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"oauthProvider\",\"kind\":\"enum\",\"type\":\"OauthProvider\"},{\"name\":\"oauthId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"roomMemberships\",\"kind\":\"object\",\"type\":\"RoomMember\",\"relationName\":\"RoomMemberToUser\"}],\"dbName\":null},\"Room\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"roomId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"passcode\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"canvasData\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"members\",\"kind\":\"object\",\"type\":\"RoomMember\",\"relationName\":\"RoomToRoomMember\"}],\"dbName\":null},\"RoomMember\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"roomId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"role\",\"kind\":\"enum\",\"type\":\"UserRole\"},{\"name\":\"joinedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"RoomMemberToUser\"},{\"name\":\"room\",\"kind\":\"object\",\"type\":\"Room\",\"relationName\":\"RoomToRoomMember\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.engineWasm = {
   getRuntime: async () => require('./query_engine_bg.js'),

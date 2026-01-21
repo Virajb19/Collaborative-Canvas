@@ -1,11 +1,14 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import { Pencil, Users, Zap, ArrowRight, Sparkles, MousePointer2, Palette, Star } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { Pencil, Users, Zap, ArrowRight, Sparkles, MousePointer2, Palette, Star, UserPlus } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { useSession } from 'next-auth/react';
-import { CreateRoomDialog, JoinRoomDialog } from '~/components/RoomDialog';
+import Link from 'next/link';
+import CreateRoomDialog from '~/components/CreateRoomDialog';
+import JoinRoomDialog from '~/components/JoinRoomDialog';
+import UserAccountNav from '~/components/UserAccountNav';
 
 const STAR_COLORS = [
   "text-red-400 fill-red-300",
@@ -24,22 +27,22 @@ const pick = (arr: string[], seed: number) =>
 const Particle = ({ delay, duration, x, y, size, color }: { delay: number; duration: number; x: string; y: string; size: number; color: string }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0 }}
-    animate={{ 
+    animate={{
       opacity: [0, 1, 1, 0],
       scale: [0, 1, 1, 0],
       y: [0, -100, -200, -300],
     }}
-    transition={{ 
+    transition={{
       duration,
       delay,
       repeat: Infinity,
       ease: "easeOut"
     }}
     className={twMerge("absolute rounded-full blur-[1px]", color)}
-    style={{ 
-      left: x, 
-      top: y, 
-      width: size, 
+    style={{
+      left: x,
+      top: y,
+      width: size,
       height: size,
     }}
   />
@@ -91,38 +94,11 @@ const DrawingPath = () => (
 
 
 const Index = () => {
-  // const [roomId, setRoomId] = useState('');
-  // const [inputRoomId, setInputRoomId] = useState('');
-  // const [isJoining, setIsJoining] = useState(false);
-  // const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  // useEffect(() => {
-  //   const handleMouseMove = (e: MouseEvent) => {
-  //     setMousePosition({ x: e.clientX, y: e.clientY });
-  //   };
-  //   window.addEventListener('mousemove', handleMouseMove);
-  //   return () => window.removeEventListener('mousemove', handleMouseMove);
-  // }, []);
-
-  // const generateRoomId = () => {
-  //   const id = Math.random().toString(36).substring(2, 8).toUpperCase();
-  //   setRoomId(id);
-  // };
-
-  // const joinRoom = () => {
-  //   if (inputRoomId.trim()) {
-  //     setRoomId(inputRoomId.trim().toUpperCase());
-  //   }
-  // };
-
-  // if (roomId) {
-  //   return <CollaborativeCanvas roomId={roomId} />;
-  // }
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
 
-  const {data: session} = useSession()
+  const { data: session } = useSession()
 
   const features = [
     { icon: Pencil, label: 'Draw & Erase', desc: 'Intuitive brush tools', color: '--user-blue' },
@@ -133,31 +109,43 @@ const Index = () => {
     { icon: Sparkles, label: 'Undo/Redo', desc: 'Never lose work', color: '--user-cyan' },
   ];
 
-const particles = [
-  // original 8 (unchanged except Tailwind colors)
-  { delay: 0,   duration: 8,  x: '10%', y: '80%', size: 8, color: 'bg-blue-500' },
-  { delay: 1,   duration: 10, x: '20%', y: '90%', size: 6, color: 'bg-purple-500' },
-  { delay: 2,   duration: 9,  x: '80%', y: '85%', size: 7, color: 'bg-pink-500' },
-  { delay: 3,   duration: 11, x: '90%', y: '75%', size: 6, color: 'bg-cyan-500' },
-  { delay: 0.5, duration: 8,  x: '30%', y: '95%', size: 8, color: 'bg-indigo-500' },
-  { delay: 1.5, duration: 9,  x: '70%', y: '88%', size: 7, color: 'bg-green-500' },
-  { delay: 2.5, duration: 10, x: '50%', y: '92%', size: 6, color: 'bg-amber-500' },
-  { delay: 3.5, duration: 8,  x: '60%', y: '80%', size: 8, color: 'bg-violet-500' },
+  const particles = [
+    // original 8 (unchanged except Tailwind colors)
+    { delay: 0, duration: 8, x: '10%', y: '80%', size: 8, color: 'bg-blue-500' },
+    { delay: 1, duration: 10, x: '20%', y: '90%', size: 6, color: 'bg-purple-500' },
+    { delay: 2, duration: 9, x: '80%', y: '85%', size: 7, color: 'bg-pink-500' },
+    { delay: 3, duration: 11, x: '90%', y: '75%', size: 6, color: 'bg-cyan-500' },
+    { delay: 0.5, duration: 8, x: '30%', y: '95%', size: 8, color: 'bg-indigo-500' },
+    { delay: 1.5, duration: 9, x: '70%', y: '88%', size: 7, color: 'bg-green-500' },
+    { delay: 2.5, duration: 10, x: '50%', y: '92%', size: 6, color: 'bg-amber-500' },
+    { delay: 3.5, duration: 8, x: '60%', y: '80%', size: 8, color: 'bg-violet-500' },
 
-  // additional 8
-  { delay: 0.8, duration: 9,  x: '15%', y: '70%', size: 7, color: 'bg-sky-500' },
-  { delay: 1.2, duration: 11, x: '25%', y: '85%', size: 6, color: 'bg-rose-500' },
-  { delay: 1.8, duration: 8,  x: '40%', y: '78%', size: 8, color: 'bg-emerald-500' },
-  { delay: 2.2, duration: 10, x: '55%', y: '90%', size: 7, color: 'bg-teal-500' },
-  { delay: 2.8, duration: 9,  x: '65%', y: '75%', size: 6, color: 'bg-orange-500' },
-  { delay: 3.2, duration: 11, x: '75%', y: '95%', size: 8, color: 'bg-fuchsia-500' },
-  { delay: 3.8, duration: 8,  x: '85%', y: '82%', size: 7, color: 'bg-lime-500' },
-  { delay: 4.2, duration: 10, x: '95%', y: '88%', size: 6, color: 'bg-red-500' },
-];
+    // additional 8
+    { delay: 0.8, duration: 9, x: '15%', y: '70%', size: 7, color: 'bg-sky-500' },
+    { delay: 1.2, duration: 11, x: '25%', y: '85%', size: 6, color: 'bg-rose-500' },
+    { delay: 1.8, duration: 8, x: '40%', y: '78%', size: 8, color: 'bg-emerald-500' },
+    { delay: 2.2, duration: 10, x: '55%', y: '90%', size: 7, color: 'bg-teal-500' },
+    { delay: 2.8, duration: 9, x: '65%', y: '75%', size: 6, color: 'bg-orange-500' },
+    { delay: 3.2, duration: 11, x: '75%', y: '95%', size: 8, color: 'bg-fuchsia-500' },
+    { delay: 3.8, duration: 8, x: '85%', y: '82%', size: 7, color: 'bg-lime-500' },
+    { delay: 4.2, duration: 10, x: '95%', y: '88%', size: 6, color: 'bg-red-500' },
+  ];
 
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* User Account Nav - Top Right */}
+      {session && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="fixed top-4 right-4 z-50"
+        >
+          <UserAccountNav />
+        </motion.div>
+      )}
+
       {/* Mouse follow glow */}
       <motion.div
         className="pointer-events-none fixed w-[600px] h-[600px] rounded-full opacity-20"
@@ -174,7 +162,7 @@ const particles = [
         {/* Large gradient orbs with more movement */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5, x: 100, y: -100 }}
-          animate={{ 
+          animate={{
             opacity: [0.4, 0.6, 0.4],
             scale: [1, 1.2, 1],
             x: [0, 50, 0],
@@ -185,7 +173,7 @@ const particles = [
         />
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ 
+          animate={{
             opacity: [0.3, 0.5, 0.3],
             scale: [1, 1.3, 1],
             x: [0, -40, 0],
@@ -196,7 +184,7 @@ const particles = [
         />
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ 
+          animate={{
             opacity: [0.2, 0.4, 0.2],
             scale: [1, 1.1, 1],
           }}
@@ -211,10 +199,10 @@ const particles = [
         {particles.map((p, i) => (
           <Particle key={i} {...p} />
         ))}
-        
+
         {/* Floating geometric shapes with rotation */}
         <motion.div
-          animate={{ 
+          animate={{
             y: [0, -30, 0],
             rotate: [0, 180, 360],
             scale: [1, 1.1, 1],
@@ -223,7 +211,7 @@ const particles = [
           className="absolute top-[20%] left-[12%] w-20 h-20 rounded-3xl bg-gradient-to-br from-[hsl(var(--user-cyan))]/40 to-[hsl(var(--user-blue))]/20 backdrop-blur-md border border-white/20 shadow-xl"
         />
         <motion.div
-          animate={{ 
+          animate={{
             y: [0, 25, 0],
             rotate: [0, -90, -180],
             scale: [1, 0.9, 1],
@@ -232,7 +220,7 @@ const particles = [
           className="absolute top-[30%] right-[15%] w-16 h-16 rounded-2xl bg-gradient-to-br from-[hsl(var(--user-orange))]/40 to-[hsl(var(--user-amber))]/20 backdrop-blur-md border border-white/20 shadow-xl"
         />
         <motion.div
-          animate={{ 
+          animate={{
             y: [0, -20, 0],
             rotate: [45, 135, 45],
             scale: [1, 1.15, 1],
@@ -241,7 +229,7 @@ const particles = [
           className="absolute bottom-[35%] left-[20%] w-14 h-14 rounded-xl bg-gradient-to-br from-[hsl(var(--user-green))]/40 to-[hsl(var(--user-teal))]/20 backdrop-blur-md border border-white/20 shadow-xl"
         />
         <motion.div
-          animate={{ 
+          animate={{
             y: [0, 35, 0],
             rotate: [0, 270, 360],
           }}
@@ -252,17 +240,17 @@ const particles = [
         {/* Sparkle stars */}
         {[...Array(15)].map((_, i) => {
 
-        const color = pick(STAR_COLORS, i * 13);
-          
-         return <motion.div
+          const color = pick(STAR_COLORS, i * 13);
+
+          return <motion.div
             key={`star-${i}`}
             initial={{ opacity: 0, scale: 0 }}
-            animate={{ 
+            animate={{
               opacity: [0, 1, 0],
               scale: [0, 1, 0],
               rotate: [0, 180, 360],
             }}
-            transition={{ 
+            transition={{
               duration: 3,
               repeat: Infinity,
               delay: i * 0.8,
@@ -276,19 +264,19 @@ const particles = [
           >
             <Star className={twMerge("w-7 h-7", color)} />
           </motion.div>
-    })}
-        
+        })}
+
         {/* Grid pattern with subtle animation */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           transition={{ duration: 2 }}
-          className="absolute inset-0 bg-[linear-gradient(to_right,#dee1f5_1px,transparent_1px),linear-gradient(to_bottom,#dee1f5_1px,transparent_1px)] bg-size-[60px_60px]" 
+          className="absolute inset-0 bg-[linear-gradient(to_right,#dee1f5_1px,transparent_1px),linear-gradient(to_bottom,#dee1f5_1px,transparent_1px)] bg-size-[60px_60px]"
         />
       </div>
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
@@ -297,7 +285,7 @@ const particles = [
           {/* Header */}
           <div className="text-center mb-12">
             {/* Animated logo */}
-            <motion.div 
+            <motion.div
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ duration: 0.8, delay: 0.2, type: "spring", stiffness: 150, damping: 15 }}
@@ -323,14 +311,14 @@ const particles = [
                 </motion.div>
               </div>
             </motion.div>
-            
+
             {/* Badge */}
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
             >
-              <motion.span 
+              <motion.span
                 whileHover={{ scale: 1.05 }}
                 className="inline-flex items-center gap-2 px-5 py-2 bg-linear-to-r from-blue-200 to-[hsl(var(--user-purple))]/30 rounded-full text-blue-400 text-lg font-semibold mb-6 border border-blue-300 shadow-lg shadow-primary/10 cursor-default"
               >
@@ -343,9 +331,9 @@ const particles = [
                 Real-time collaboration
               </motion.span>
             </motion.div>
-            
+
             {/* Title with letter animation */}
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.5 }}
@@ -371,20 +359,20 @@ const particles = [
                 Canvas
               </motion.span>
             </motion.h1>
-            
-            <motion.p 
+
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.7 }}
               className="text-2xl text-gray-600 max-w-lg mx-auto leading-relaxed"
             >
-              Draw together in real-time with anyone, anywhere. 
+              Draw together in real-time with anyone, anywhere.
               <span className="text-black font-semibold"> Share ideas visually.</span>
             </motion.p>
           </div>
 
           {/* Features Grid */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
@@ -395,12 +383,12 @@ const particles = [
                 key={feature.label}
                 initial={{ opacity: 0, y: 20, scale: 0.8 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ 
-                  duration: 0.5, 
+                transition={{
+                  duration: 0.5,
                   delay: 0.9 + i * 0.08,
                   ease: 'easeInOut'
                 }}
-                whileHover={{ 
+                whileHover={{
                   // scale: 1.08, 
                   y: -5,
                   transition: { duration: 0.2 }
@@ -413,13 +401,13 @@ const particles = [
                   whileHover={{ opacity: 1 }}
                   className="absolute inset-0 bg-linear-to-br from-primary/10 to-transparent"
                 />
-                <div 
+                <div
                   className="relative inline-flex items-center justify-center w-15 h-15 rounded-xl mb-3 transition-all duration-300 group-hover:scale-110"
                   style={{
                     background: `linear-gradient(135deg, hsl(var(${feature.color}) / 0.2), hsl(var(${feature.color}) / 0.1))`,
                   }}
                 >
-                  <feature.icon 
+                  <feature.icon
                     className="w-7 h-7 transition-all duration-300"
                     style={{ color: `hsl(var(${feature.color}))` }}
                   />
@@ -442,60 +430,91 @@ const particles = [
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-linear-to-tr from-[hsl(var(--user-purple))]/10 to-transparent rounded-full blur-3xl" />
 
             <div className="relative space-y-5">
-              <motion.button
-                whileHover={{ scale: 1.02, boxShadow: '0 20px 40px -10px hsl(var(--primary) / 0.4)' }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setCreateDialogOpen(true)}
-                className="w-full relative bg-linear-to-r from-blue-300 via-[hsl(var(--user-indigo))] to-[hsl(var(--user-purple))] text-white py-5 px-8 rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl shadow-primary/30 overflow-hidden group cursor-pointer"
-              >
-                {/* Shimmer effect */}
-                <motion.div
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '200%' }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
-                  className="absolute inset-0 bg-linear-to-r from-transparent via-white/25 to-transparent skew-x-12"
-                />
-
-                <span className="relative z-10 flex items-center justify-center gap-3">
-                  <motion.span
-                    animate={{ rotate: [0, 15, -15, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              {session ? (
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.02, boxShadow: '0 20px 40px -10px hsl(var(--primary) / 0.4)' }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setCreateDialogOpen(true)}
+                    className="w-full relative bg-linear-to-r from-blue-300 via-[hsl(var(--user-indigo))] to-[hsl(var(--user-purple))] text-white py-5 px-8 rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl shadow-primary/30 overflow-hidden group cursor-pointer"
                   >
-                    <Sparkles className="w-6 h-6 fill-amber-400 text-amber-400" />
-                  </motion.span>
-                  Create New Room
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </motion.button>
+                    {/* Shimmer effect */}
+                    <motion.div
+                      initial={{ x: '-100%' }}
+                      animate={{ x: '200%' }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+                      className="absolute inset-0 bg-linear-to-r from-transparent via-white/25 to-transparent skew-x-12"
+                    />
 
-              <div className="relative py-3">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border/60" />
-                </div>
-                <div className="relative flex justify-center z-100">
-                  <span className="px-6 bg-white text-lg text-gray-600 font-medium">
-                    or join existing room
-                  </span>
-                </div>
-              </div>
+                    <span className="relative z-10 flex items-center justify-center gap-3">
+                      <motion.span
+                        animate={{ rotate: [0, 15, -15, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <Sparkles className="w-6 h-6 fill-amber-400 text-amber-400" />
+                      </motion.span>
+                      Create New Room
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </motion.button>
+
+                  <div className="relative py-3">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border/60" />
+                    </div>
+                    <div className="relative flex justify-center z-100">
+                      <span className="px-6 bg-white text-lg text-gray-600 font-medium">
+                        or join existing room
+                      </span>
+                    </div>
+                  </div>
 
                   <motion.button
                     key="button"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                     onClick={() => setJoinDialogOpen(true)}
-                      whileHover={{scale: 1.01, y: -7}}
+                    onClick={() => setJoinDialogOpen(true)}
+                    whileHover={{ scale: 1.01, y: -7 }}
                     className="w-full bg-[#E7E9EC] hover:bg-secondary text-secondary-foreground py-5 px-8 rounded-2xl font-semibold text-lg transition-all duration-200 border border-transparent hover:border-gray-300 cursor-pointer"
                   >
                     Join a Room
                   </motion.button>
+                </>
+              ) : (
+                <Link href="/auth">
+                  <motion.div
+                    whileHover={{ scale: 1.02, boxShadow: '0 20px 40px -10px hsl(var(--user-purple) / 0.4)' }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full relative bg-gradient-to-r from-[hsl(var(--user-purple))] via-[hsl(var(--user-pink))] to-[hsl(var(--user-orange))] text-white py-5 px-8 rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl shadow-[hsl(var(--user-purple))]/30 overflow-hidden group cursor-pointer"
+                  >
+                    {/* Shimmer effect */}
+                    <motion.div
+                      initial={{ x: '-100%' }}
+                      animate={{ x: '200%' }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent skew-x-12"
+                    />
+
+                    <span className="relative z-10 flex items-center justify-center gap-3">
+                      <motion.span
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <UserPlus className="w-6 h-6" />
+                      </motion.span>
+                      Sign Up to get started
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </motion.div>
+                </Link>
+              )}
             </div>
           </motion.div>
-          
+
 
           {/* Footer hint */}
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 1.4 }}
@@ -512,12 +531,12 @@ const particles = [
         </motion.div>
       </div>
 
-       <CreateRoomDialog
-        open={createDialogOpen} 
+      <CreateRoomDialog
+        open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
       <JoinRoomDialog
-        open={joinDialogOpen} 
+        open={joinDialogOpen}
         onOpenChange={setJoinDialogOpen}
       />
 

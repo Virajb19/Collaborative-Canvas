@@ -125,19 +125,41 @@ exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   username: 'username',
   email: 'email',
-  emailVerified: 'emailVerified',
   password: 'password',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   lastLogin: 'lastLogin',
-  ProfilePicture: 'ProfilePicture',
-  OauthProvider: 'OauthProvider',
-  OauthId: 'OauthId'
+  profilePicture: 'profilePicture',
+  oauthProvider: 'oauthProvider',
+  oauthId: 'oauthId'
+};
+
+exports.Prisma.RoomScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  name: 'name',
+  passcode: 'passcode',
+  canvasData: 'canvasData',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RoomMemberScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  roomId: 'roomId',
+  role: 'role',
+  joinedAt: 'joinedAt'
 };
 
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -149,13 +171,26 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
 exports.OauthProvider = exports.$Enums.OauthProvider = {
   GOOGLE: 'GOOGLE',
   GITHUB: 'GITHUB'
 };
 
+exports.UserRole = exports.$Enums.UserRole = {
+  OWNER: 'OWNER',
+  GUEST: 'GUEST'
+};
+
 exports.Prisma.ModelName = {
-  User: 'User'
+  User: 'User',
+  Room: 'Room',
+  RoomMember: 'RoomMember'
 };
 
 /**

@@ -18,7 +18,7 @@ export const authConfig = {
     callbacks: {
         jwt: async ({token}) => {
             if(token && token.sub) {
-              const existingUser = await db.user.findFirst({where: { OR: [{email: token.email}, {OauthId: token.sub}, {id: !isNaN(Number(token.sub)) ? parseInt(token.sub) : undefined}]}, select: {id: true}})
+              const existingUser = await db.user.findFirst({where: { OR: [{email: token.email}, {oauthId: token.sub}, {id: !isNaN(Number(token.sub)) ? parseInt(token.sub) : undefined}]}, select: {id: true}})
               if(existingUser) {
                 token.id = existingUser.id.toString()
               }
@@ -35,24 +35,22 @@ export const authConfig = {
           signIn: async ({ user, account, profile}) => {
             try {
               if(account?.provider && profile) {
-               // How to check username availablity here ?
-              //  console.log(user)
                const provider = account.provider === 'github' ? 'GITHUB' : 'GOOGLE'
                 
-                const existingUser = await db.user.findFirst({where: { OR: [{email: user.email!}, {OauthId: user.id}]}, select: {id: true}})
+                const existingUser = await db.user.findFirst({where: { OR: [{email: user.email!}, {oauthId: user.id}]}, select: {id: true}})
                 if(existingUser) {
                   await db.user.update({
                    where: {id: existingUser.id},
-                   data: {lastLogin: new Date(), username: user.name ?? undefined, email: user.email ?? undefined, ProfilePicture: user.image, OauthProvider: provider, OauthId: user.id}
+                   data: {lastLogin: new Date(), username: user.name ?? undefined, email: user.email ?? undefined, profilePicture: user.image, oauthProvider: provider, oauthId: user.id}
                   })
                 } else {
                    await db.user.create({
                      data: {
                        username: user.name ?? "unknown",
                        email: user.email ?? "unknown",
-                       ProfilePicture: user.image,
-                       OauthId: user.id,
-                       OauthProvider: provider
+                       profilePicture: user.image,
+                       oauthId: user.id,
+                       oauthProvider: provider
                      }
                    })
                 }     
@@ -62,8 +60,6 @@ export const authConfig = {
             } catch(e) {
              console.log(e)
              return false
-            // throw new Error("SIGN_IN_FAILED")
-            // return '/error'
             }
          },     
     },
@@ -81,6 +77,8 @@ export const authConfig = {
                 }
 
                 const {email,password} = credentials
+
+                // throw new Error('Error to check auto-login')
         
                 const parsedData = SignInSchema.safeParse({email,password})
                 if(!parsedData.success) throw new Error('Invalid Credentials. try again !')
@@ -119,7 +117,6 @@ export const authConfig = {
     },
     pages: {
         signIn: '/signin',
-        // error: '/error'
     },
     secret: process.env.AUTH_SECRET || 'secret'
  

@@ -11,23 +11,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enums
 enum OauthProvider {
   GOOGLE
   GITHUB
 }
 
+enum UserRole {
+  OWNER
+  GUEST
+}
+
+// Models
 model User {
-  id            Int       @id @default(autoincrement())
-  username      String    @unique
-  email         String?   @unique
-  emailVerified DateTime?
-  password      String?
+  id       Int     @id @default(autoincrement())
+  username String  @unique
+  email    String? @unique
+  password String?
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   lastLogin      DateTime @default(now())
-  ProfilePicture String?  @default("")
+  profilePicture String?  @default("")
 
-  OauthProvider OauthProvider?
-  OauthId       String?
+  oauthProvider OauthProvider?
+  oauthId       String?
+
+  // Relations
+  roomMemberships RoomMember[]
+}
+
+model Room {
+  id       String  @id @default(cuid())
+  roomId   String  @unique // 6-char alphanumeric code
+  name     String?
+  passcode String // hashed passcode
+
+  canvasData Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  members RoomMember[]
+
+  @@index([roomId])
+}
+
+model RoomMember {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  roomId String
+  role   UserRole @default(GUEST)
+
+  joinedAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roomId]) // user can join a room only once
+  @@index([roomId])
+  @@index([userId])
 }
