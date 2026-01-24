@@ -5,23 +5,30 @@ import { DrawingCanvas } from '~/components/drawing/DrawingCanvas';
 import { Toolbar } from './ToolBar';
 import { UserCursors } from './UserCursors';
 import { UsersPanel } from './UsersPanel';
+import { useRoomStore } from '~/lib/store';
+import type { RoomMemberWithUser } from '~/components/Room';
+
+// ...
 
 interface CollaborativeCanvasProps {
   roomId: string;
-  onRoomDeleted?: () => void;
+  roomMembers: RoomMemberWithUser[];
 }
 
-export const CollaborativeCanvas = ({ roomId, onRoomDeleted }: CollaborativeCanvasProps) => {
+export const CollaborativeCanvas = ({ roomId, roomMembers }: CollaborativeCanvasProps) => {
+  const { setShowDeletedDialog } = useRoomStore();
   const [currentTool, setCurrentTool] = useState<Tool>('brush');
   const [currentColor, setCurrentColor] = useState('#000000');
   const [currentWidth, setCurrentWidth] = useState(8);
 
   const {
     strokes,
+    streamingStrokes,
     users,
     currentUser,
     addStroke,
     updateCursor,
+    streamStrokePoint,
     undo,
     redo,
     clearCanvas,
@@ -34,10 +41,10 @@ export const CollaborativeCanvas = ({ roomId, onRoomDeleted }: CollaborativeCanv
 
   // Handle room deleted
   useEffect(() => {
-    if (roomDeleted && onRoomDeleted) {
-      onRoomDeleted();
+    if (roomDeleted) {
+      setShowDeletedDialog(true);
     }
-  }, [roomDeleted, onRoomDeleted]);
+  }, [roomDeleted, setShowDeletedDialog]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -73,11 +80,13 @@ export const CollaborativeCanvas = ({ roomId, onRoomDeleted }: CollaborativeCanv
       <div className="absolute inset-4 bottom-24 bg-canvas rounded-2xl shadow-panel overflow-hidden canvas-grid">
         <DrawingCanvas
           strokes={strokes}
+          streamingStrokes={streamingStrokes}
           userId={currentUser.id}
           currentTool={currentTool}
           currentColor={currentColor}
           currentWidth={currentWidth}
           onStrokeComplete={addStroke}
+          onStrokeStream={streamStrokePoint}
           onCursorMove={updateCursor}
         />
         <UserCursors users={users} currentUserId={currentUser.id} />
@@ -98,7 +107,7 @@ export const CollaborativeCanvas = ({ roomId, onRoomDeleted }: CollaborativeCanv
       </div>
 
       {/* Users panel */}
-      <UsersPanel users={users} currentUserId={currentUser.id} />
+      <UsersPanel users={users} currentUserId={currentUser.id} roomMembers={roomMembers} />
 
       {/* Toolbar */}
       <Toolbar

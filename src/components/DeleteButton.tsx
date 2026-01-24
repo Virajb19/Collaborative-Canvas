@@ -19,13 +19,15 @@ export default function DeleteButton({ roomId }: DeleteButtonProps) {
     // const utils = api.useUtils();
 
     const deleteRoomMutation = api.room.delete.useMutation({
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
             // Broadcast to all connected users in the room
             const socket = getSocket();
             if (socket) {
                 socket.emit(SOCKET_EVENTS.ROOM_DELETED, { roomId: data.roomId });
             }
+            await new Promise((resolve) => setTimeout(resolve, 1000));
             router.refresh();
+            
             // utils.user.getRooms.refetch();
         },
         onError: (err) => {

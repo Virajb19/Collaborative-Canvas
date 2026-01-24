@@ -5,6 +5,7 @@ export const SOCKET_EVENTS = {
   CONNECT: 'connect',
   DISCONNECT: 'disconnect',
   CONNECT_ERROR: 'connect_error',
+  RECONNECT: 'reconnect',
 
   // Room events
   JOIN_ROOM: 'room:join',
@@ -17,6 +18,8 @@ export const SOCKET_EVENTS = {
   // Drawing events
   STROKE_ADD: 'stroke:add',
   STROKE_RECEIVED: 'stroke:received',
+  STROKE_STREAM: 'stroke:stream',
+  STROKE_STREAM_RECEIVED: 'stroke:stream:received',
   CANVAS_CLEAR: 'canvas:clear',
   CANVAS_CLEARED: 'canvas:cleared',
   CANVAS_UNDO: 'canvas:undo',

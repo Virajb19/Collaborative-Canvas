@@ -8,7 +8,7 @@ export const getSocket = (): Socket => {
     
     socket = io(socketUrl, {
       autoConnect: false,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,

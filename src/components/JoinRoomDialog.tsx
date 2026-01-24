@@ -68,6 +68,7 @@ export const JoinRoomDialog = ({ open, onOpenChange }: JoinRoomDialogProps) => {
                 form.reset();
                 onOpenChange(false);
                 router.push(`/room/${result.room.roomId}`);
+                router.refresh();
             },
             onError: (err) => {
                 toast.error(err.message);

@@ -32,5 +32,20 @@ export default async function RoomPage({ params }: { params: Promise<{ roomId: s
 
   if (!isMember) return redirect('/')
 
-  return <Room />
+  const roomMembers = await db.roomMember.findMany({
+    where: { roomId: room.id },
+    select: {
+      userId: true,
+      role: true,
+      user: {
+        select: {
+          id: true,
+          username: true,
+          profilePicture: true
+        }
+      }
+    }
+  })
+
+  return <Room roomMembers={roomMembers} />
 }

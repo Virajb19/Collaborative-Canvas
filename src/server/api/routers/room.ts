@@ -172,4 +172,66 @@ export const roomRouter = createTRPCRouter({
                 roomId: room.roomId
             };
         }),
+
+    // Leave room - removes user from RoomMember table
+    leave: protectedProcedure
+        .input(z.object({ roomId: z.string().min(1) }))
+        .mutation(async ({ ctx, input }) => {
+            const { roomId } = input;
+            const userId = ctx.session.user.id;
+
+            // Find the room
+            const room = await ctx.db.room.findUnique({
+                where: { roomId },
+                select: {
+                    id: true,
+                    roomId: true,
+                    members: {
+                        select: {
+                            userId: true,
+                            role: true
+                        }
+                    }
+                }
+            });
+
+            if (!room) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Room not found.'
+                });
+            }
+
+            // Check if the user is a member
+            const membership = room.members.find(m => m.userId === parseInt(userId));
+            if (!membership) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'You are not a member of this room.'
+                });
+            }
+
+            // Owners cannot leave - they must delete the room
+            if (membership.role === 'OWNER') {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Room owners cannot leave. You must delete the room instead.'
+                });
+            }
+
+            // Remove the user from the room
+            await ctx.db.roomMember.delete({
+                where: {
+                    userId_roomId: {
+                        userId: parseInt(userId),
+                        roomId: room.id
+                    }
+                }
+            });
+
+            return {
+                message: 'Successfully left the room!',
+                roomId: room.roomId
+            };
+        }),
 });

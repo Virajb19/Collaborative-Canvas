@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Sparkles, Copy, Check, AlertTriangle } from 'lucide-react';
+import { Sparkles, Copy, Check, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'nextjs-toploader/app';
@@ -12,7 +12,30 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '~/components/ui/tooltip';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '~/components/ui/alert-dialog';
+import { LeaveRoomButton } from '~/components/LeaveRoomButton';
 import Link from 'next/link';
+import type { UserRole } from 'generated/prisma';
+import { useRoomStore } from '~/lib/store';
+
+export type RoomMemberWithUser = {
+    userId: number;
+    role: UserRole;
+    user: {
+        id: number;
+        username: string;
+        profilePicture: string | null;
+    };
+};
+
 
 // Floating particle component
 const FloatingParticle = ({ delay, duration, x, y, size }: {
@@ -39,15 +62,11 @@ const FloatingParticle = ({ delay, duration, x, y, size }: {
     />
 );
 
-export default function Room() {
+export default function Room({ roomMembers }: { roomMembers: RoomMemberWithUser[] }) {
     const params = useParams<{ roomId: string }>();
     const router = useRouter();
     const roomId = params.roomId;
     const [copied, setCopied] = useState(false);
-
-    const handleLeave = () => {
-        router.push('/');
-    };
 
     const copyRoomId = async () => {
         if (roomId) {
@@ -57,10 +76,11 @@ export default function Room() {
         }
     };
 
-    const [showDeletedPopup, setShowDeletedPopup] = useState(false);
+    const { showDeletedDialog, setShowDeletedDialog } = useRoomStore();
 
-    const handleRoomDeleted = () => {
-        setShowDeletedPopup(true);
+    const handleGoHome = () => {
+        setShowDeletedDialog(false);
+        router.push('/');
     };
 
     if (!roomId) {
@@ -212,54 +232,7 @@ export default function Room() {
                         transition={{ delay: 0.3 }}
                     >
                         {/* Leave button */}
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <motion.div
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                   <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleLeave}
-                                        className="
-                                            group relative gap-2 overflow-hidden
-                                            bg-card/70 backdrop-blur-xl
-                                            border border-destructive/30
-                                            text-destructive
-                                            hover:text-destructive
-                                            transition-all duration-300
-
-                                            hover:bg-destructive/10
-                                            hover:border-destructive/60
-                                            hover:shadow-[0_0_20px_-5px_hsl(var(--destructive)/0.6)]
-                                        "
-                                        >
-                                        {/* glow sweep */}
-                                        <span
-                                            className="
-                                            absolute inset-0 -translate-x-full
-                                            bg-gradient-to-r
-                                            from-transparent
-                                            via-destructive/20
-                                            to-transparent
-                                            group-hover:translate-x-full
-                                            transition-transform duration-700
-                                            "
-                                        />
-
-                                        <LogOut className="w-4 h-4 relative z-10" />
-                                        <span className="hidden sm:inline relative z-10">
-                                            Leave Room
-                                        </span>
-                                        </Button>
-
-                                </motion.div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Leave this room</p>
-                            </TooltipContent>
-                        </Tooltip>
+                        <LeaveRoomButton roomId={roomId} />
                     </motion.div>
                 </div>
             </motion.header>
@@ -271,7 +244,10 @@ export default function Room() {
                 transition={{ delay: 0.4, duration: 0.5 }}
                 className="pt-16"
             >
-                <CollaborativeCanvas roomId={roomId} onRoomDeleted={handleRoomDeleted} />
+                <CollaborativeCanvas
+                    roomId={roomId}
+                    roomMembers={roomMembers}
+                />
             </motion.main>
 
             {/* Decorative corner elements */}
@@ -292,35 +268,30 @@ export default function Room() {
                 />
             </div>
 
-            {/* Room Deleted Popup */}
-            <AnimatePresence>
-                {showDeletedPopup && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 text-center"
+            {/* Room Deleted Dialog */}
+            <AlertDialog open={showDeletedDialog} onOpenChange={setShowDeletedDialog}>
+                <AlertDialogContent className="max-w-md">
+                    <AlertDialogHeader className="text-center sm:text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center">
+                            <AlertTriangle className="w-8 h-8 text-red-500" />
+                        </div>
+                        <AlertDialogTitle className="text-2xl font-bold">
+                            Room Deleted
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground">
+                            This room has been deleted by the owner. You will be redirected to the home page.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="sm:justify-center">
+                        <AlertDialogAction
+                            onClick={handleGoHome}
+                            className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                         >
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-                                <AlertTriangle className="w-8 h-8 text-red-500" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-foreground mb-2">Room Deleted</h2>
-                            <p className="text-muted-foreground mb-6">
-                                This room has been deleted by the owner. You will be redirected to the home page.
-                            </p>
-                            <Button asChild className="w-full">
-                                <Link href="/">Go to Home</Link>
-                            </Button>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                            Go to Home
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

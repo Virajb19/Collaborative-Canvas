@@ -1,18 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSocket } from '~/hooks/useSocket';
-import type { DrawingStroke, User, Point } from '~/types/drawing';
+import type { DrawingStroke, User, Point, Tool } from '~/types/drawing';
 import { USER_COLORS } from '~/types/drawing';
 
-interface CollaborativeState {
-    undoStack: DrawingStroke[][];
-    redoStack: DrawingStroke[][];
-}
-
 export const useCollaborativeDrawing = (roomId: string) => {
-    const [localState, setLocalState] = useState<CollaborativeState>({
-        undoStack: [],
-        redoStack: [],
-    });
+    // Local undo/redo removed in favor of server-side history
 
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const userIdRef = useRef<string>('');
@@ -47,9 +39,11 @@ export const useCollaborativeDrawing = (roomId: string) => {
         isConnected,
         users,
         strokes,
+        streamingStrokes,
         error,
         roomDeleted,
         emitStroke,
+        emitStrokeStream,
         emitCursor,
         emitUndo,
         emitRedo,
@@ -61,19 +55,7 @@ export const useCollaborativeDrawing = (roomId: string) => {
         userColor: currentUser?.color || USER_COLORS[0] as string,
     });
 
-    // Keep a ref to the current strokes to avoid stale closure issues
-    const strokesRef = useRef<DrawingStroke[]>(strokes);
-    useEffect(() => {
-        strokesRef.current = strokes;
-    }, [strokes]);
-
     const addStroke = useCallback((stroke: DrawingStroke) => {
-        // Capture current strokes before state update
-        const currentStrokes = strokesRef.current;
-        setLocalState(prev => ({
-            undoStack: [...prev.undoStack, currentStrokes],
-            redoStack: [],
-        }));
         emitStroke(stroke);
     }, [emitStroke]);
 
@@ -82,66 +64,42 @@ export const useCollaborativeDrawing = (roomId: string) => {
         emitCursor(position);
     }, [currentUser, emitCursor]);
 
+    const streamStrokePoint = useCallback((data: {
+        strokeId: string;
+        point: Point;
+        color: string;
+        width: number;
+        tool: Tool;
+        isStart: boolean;
+    }) => {
+        emitStrokeStream(data);
+    }, [emitStrokeStream]);
+
     const undo = useCallback(() => {
-        // Capture current strokes BEFORE the state update
-        const currentStrokes = strokesRef.current;
-
-        setLocalState(prev => {
-            if (prev.undoStack.length === 0) return prev;
-
-            const newUndoStack = [...prev.undoStack];
-            const previousStrokes = newUndoStack.pop()!;
-
-            // Emit the strokes we want to revert to
-            emitUndo(previousStrokes);
-
-            return {
-                undoStack: newUndoStack,
-                redoStack: [...prev.redoStack, currentStrokes],
-            };
-        });
+        emitUndo();
     }, [emitUndo]);
 
     const redo = useCallback(() => {
-        // Capture current strokes BEFORE the state update
-        const currentStrokes = strokesRef.current;
-
-        setLocalState(prev => {
-            if (prev.redoStack.length === 0) return prev;
-
-            const newRedoStack = [...prev.redoStack];
-            const nextStrokes = newRedoStack.pop()!;
-
-            // Emit the strokes we want to redo to
-            emitRedo(nextStrokes);
-
-            return {
-                undoStack: [...prev.undoStack, currentStrokes],
-                redoStack: newRedoStack,
-            };
-        });
+        emitRedo();
     }, [emitRedo]);
 
     const clearCanvas = useCallback(() => {
-        const currentStrokes = strokesRef.current;
-        setLocalState(prev => ({
-            undoStack: [...prev.undoStack, currentStrokes],
-            redoStack: [],
-        }));
         emitClear();
     }, [emitClear]);
 
     return {
         strokes,
+        streamingStrokes,
         users,
         currentUser,
         addStroke,
         updateCursor,
+        streamStrokePoint,
         undo,
         redo,
         clearCanvas,
-        canUndo: localState.undoStack.length > 0,
-        canRedo: localState.redoStack.length > 0,
+        canUndo: strokes.length > 0,
+        canRedo: true, // Optimistically allow redo
         isConnected,
         error,
         roomDeleted,

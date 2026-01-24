@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
 import { Button } from "~/components/ui/button"
@@ -144,7 +144,7 @@ export const SignUpForm = () => {
                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                         <Button
                             type="submit"
-                            disabled={signup.isPending}
+                            disabled={signUpForm.formState.isSubmitting}
                             className="w-full h-14 bg-gradient-to-r from-[hsl(var(--user-purple))] to-[hsl(var(--user-pink))] hover:opacity-90 text-white font-medium rounded-xl relative overflow-hidden group text-lg disabled:cursor-not-allowed"
                         >
                             <motion.div
@@ -153,8 +153,17 @@ export const SignUpForm = () => {
                                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
                             />
                             <span className="relative flex items-center justify-center gap-2 disabled:cursor-not-allowed">
-                                {signup.isPending ? "Creating Account..." : "Create Account"}
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                {signUpForm.formState.isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-7 h-7 animate-spin" />
+                                        Creating Account...
+                                    </>
+                                ) : (
+                                    <>
+                                        Create Account
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
                             </span>
                         </Button>
                     </motion.div>

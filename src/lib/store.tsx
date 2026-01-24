@@ -11,3 +11,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     setIsSignUp: (isSignUp) => set({ isSignUp }),
     toggleAuthMode: () => set((state) => ({ isSignUp: !state.isSignUp })),
 }))
+
+interface RoomState {
+    showDeletedDialog: boolean
+    setShowDeletedDialog: (show: boolean) => void
+}
+
+export const useRoomStore = create<RoomState>((set) => ({
+    showDeletedDialog: false,
+    setShowDeletedDialog: (show) => set({ showDeletedDialog: show }),
+}))

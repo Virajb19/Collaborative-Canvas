@@ -10,7 +10,7 @@ const queryClient = new QueryClient();
 export default function Providers({ children, ...props }: React.PropsWithChildren) {
   return <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Sonner position="bottom-right" richColors />
+      <Sonner position="bottom-right" richColors expand />
          <SessionProvider>
               {children}
          </SessionProvider>

@@ -3,6 +3,14 @@ import type { Point, DrawingStroke, Tool } from '~/types/drawing';
 
 type UseDrawingCanvasProps = {
     onStrokeComplete: (stroke: DrawingStroke) => void;
+    onStrokeStream: (data: {
+        strokeId: string;
+        point: Point;
+        color: string;
+        width: number;
+        tool: Tool;
+        isStart: boolean;
+    }) => void;
     onCursorMove: (position: Point | null) => void;
     strokes: DrawingStroke[];
     userId: string;
@@ -20,6 +28,7 @@ function isTouchEvent(
 
 export const useDrawingCanvas = ({
     onStrokeComplete,
+    onStrokeStream,
     onCursorMove,
     strokes,
     userId,
@@ -31,6 +40,7 @@ export const useDrawingCanvas = ({
     const contextRef = useRef<CanvasRenderingContext2D | null>(null);
     const isDrawingRef = useRef(false);
     const currentStrokeRef = useRef<Point[]>([]);
+    const currentStrokeIdRef = useRef<string>('');
     const [isReady, setIsReady] = useState(false);
 
     const setupCanvas = useCallback(() => {
@@ -136,6 +146,10 @@ export const useDrawingCanvas = ({
         const point = getCanvasPoint(e);
         if (!point) return;
 
+        // Generate a unique stroke ID for this drawing session
+        const strokeId = `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        currentStrokeIdRef.current = strokeId;
+
         isDrawingRef.current = true;
         currentStrokeRef.current = [point];
 
@@ -147,7 +161,17 @@ export const useDrawingCanvas = ({
         ctx.lineWidth = currentWidth;
         ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
         ctx.moveTo(point.x, point.y);
-    }, [getCanvasPoint, currentTool, currentColor, currentWidth]);
+
+        // Stream the first point to other users
+        onStrokeStream({
+            strokeId,
+            point,
+            color: currentColor,
+            width: currentWidth,
+            tool: currentTool,
+            isStart: true,
+        });
+    }, [getCanvasPoint, currentTool, currentColor, currentWidth, userId, onStrokeStream]);
 
     const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
         const point = getCanvasPoint(e);
@@ -165,7 +189,17 @@ export const useDrawingCanvas = ({
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(point.x, point.y);
-    }, [getCanvasPoint, onCursorMove]);
+
+        // Stream the point to other users
+        onStrokeStream({
+            strokeId: currentStrokeIdRef.current,
+            point,
+            color: currentColor,
+            width: currentWidth,
+            tool: currentTool,
+            isStart: false,
+        });
+    }, [getCanvasPoint, onCursorMove, currentColor, currentWidth, currentTool, onStrokeStream]);
 
     const stopDrawing = useCallback(() => {
         if (!isDrawingRef.current) return;
@@ -178,7 +212,7 @@ export const useDrawingCanvas = ({
 
         if (currentStrokeRef.current.length > 1) {
             const stroke: DrawingStroke = {
-                id: `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                id: currentStrokeIdRef.current,
                 points: [...currentStrokeRef.current],
                 color: currentColor,
                 width: currentWidth,
@@ -189,6 +223,7 @@ export const useDrawingCanvas = ({
             onStrokeComplete(stroke);
         }
         currentStrokeRef.current = [];
+        currentStrokeIdRef.current = '';
     }, [userId, currentColor, currentWidth, currentTool, onStrokeComplete]);
 
     const handleMouseLeave = useCallback(() => {

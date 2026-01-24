@@ -3,6 +3,9 @@ import { Socket } from 'socket.io-client';
 import { getSocket, connectSocket, disconnectSocket } from '~/lib/socket';
 import { SOCKET_EVENTS } from '~/lib/socket.events';
 import type { DrawingStroke, User, Point } from '~/types/drawing';
+import { toast } from 'sonner';
+import { useRoomStore } from '~/lib/store'
+import { useRouter } from 'next/navigation';
 
 interface UseSocketOptions {
   roomId: string;
@@ -11,17 +14,28 @@ interface UseSocketOptions {
   userColor: string;
 }
 
+interface StreamingStroke {
+  strokeId: string;
+  userId: string;
+  points: Point[];
+  color: string;
+  width: number;
+  tool: string;
+}
+
 interface UseSocketReturn {
   socket: Socket | null;
   isConnected: boolean;
   users: User[];
   strokes: DrawingStroke[];
+  streamingStrokes: Map<string, StreamingStroke>;
   error: string | null;
   roomDeleted: boolean;
   emitStroke: (stroke: DrawingStroke) => void;
+  emitStrokeStream: (data: { strokeId: string; point: Point; color: string; width: number; tool: string; isStart: boolean }) => void;
   emitCursor: (position: Point | null) => void;
-  emitUndo: (strokes: DrawingStroke[]) => void;
-  emitRedo: (strokes: DrawingStroke[]) => void;
+  emitUndo: () => void;
+  emitRedo: () => void;
   emitClear: () => void;
   joinRoom: () => void;
   leaveRoom: () => void;
@@ -37,24 +51,43 @@ export const useSocket = ({
   const [isConnected, setIsConnected] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [strokes, setStrokes] = useState<DrawingStroke[]>([]);
+  const [streamingStrokes, setStreamingStrokes] = useState<Map<string, StreamingStroke>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [roomDeleted, setRoomDeleted] = useState(false);
 
+
+  const { setShowDeletedDialog } = useRoomStore()
+  const router = useRouter()
+
   useEffect(() => {
+    // Don't connect until we have a valid userId
+    if (!userId) {
+      return;
+    }
+
     const socket = connectSocket();
     socketRef.current = socket;
 
-    // Connection handlers
-    socket.on(SOCKET_EVENTS.CONNECT, () => {
+    // Helper function to join room
+    const joinRoomHandler = () => {
       setIsConnected(true);
       setError(null);
-      // Auto-join room on connect
+      // Auto-join room on connect/reconnect
       socket.emit(SOCKET_EVENTS.JOIN_ROOM, {
         roomId,
         userId,
         userName,
         userColor,
       });
+    };
+
+    // Connection handlers
+    socket.on(SOCKET_EVENTS.CONNECT, joinRoomHandler);
+
+    // Handle reconnection - rejoin room automatically
+    socket.io.on('reconnect', () => {
+      console.log('Socket reconnected, rejoining room...');
+      joinRoomHandler();
     });
 
     socket.on(SOCKET_EVENTS.DISCONNECT, () => {
@@ -78,11 +111,38 @@ export const useSocket = ({
 
     // User presence handlers
     socket.on(SOCKET_EVENTS.USER_JOIN, (user: User) => {
-      setUsers((prev) => [...prev.filter((u) => u.id !== user.id), user]);
+      setUsers((prev) => {
+        // Only show toast if this is a new user (not ourselves and not already in list)
+        const isNew = !prev.some((u) => u.id === user.id) && user.id !== userId;
+        if (isNew) {
+          toast.success(`${user.name} joined the room`, {
+            style: {
+              background: `linear-gradient(135deg, ${user.color}15, ${user.color}05)`,
+              borderLeft: `4px solid ${user.color}`,
+            },
+            duration: 3000,
+          });
+        }
+        router.refresh();
+        return [...prev.filter((u) => u.id !== user.id), user];
+      });
     });
 
-    socket.on(SOCKET_EVENTS.USER_LEAVE, (data: { userId: string }) => {
-      setUsers((prev) => prev.filter((u) => u.id !== data.userId));
+    socket.on(SOCKET_EVENTS.USER_LEAVE, (data: { userId: string; userName?: string; userColor?: string }) => {
+      setUsers((prev) => {
+        const leavingUser = prev.find((u) => u.id === data.userId);
+        if (leavingUser && leavingUser.id !== userId) {
+          toast.info(`${leavingUser.name} left the room`, {
+            style: {
+              background: `linear-gradient(135deg, ${leavingUser.color}15, ${leavingUser.color}05)`,
+              borderLeft: `4px solid ${leavingUser.color}`,
+            },
+            duration: 3000,
+          });
+        }
+        router.refresh();
+        return prev.filter((u) => u.id !== data.userId);
+      });
     });
 
     socket.on(SOCKET_EVENTS.USERS_LIST, (usersList: User[]) => {
@@ -92,6 +152,53 @@ export const useSocket = ({
     // Drawing handlers
     socket.on(SOCKET_EVENTS.STROKE_RECEIVED, (stroke: DrawingStroke) => {
       setStrokes((prev) => [...prev, stroke]);
+      // Remove from streaming strokes when final stroke is received
+      setStreamingStrokes((prev) => {
+        const next = new Map(prev);
+        // Find and remove any streaming stroke from this user
+        for (const [key, value] of next) {
+          if (value.userId === stroke.userId) {
+            next.delete(key);
+          }
+        }
+        return next;
+      });
+    });
+
+    // Handle real-time stroke streaming
+    socket.on(SOCKET_EVENTS.STROKE_STREAM_RECEIVED, (data: {
+      strokeId: string;
+      userId: string;
+      point: { x: number; y: number };
+      color: string;
+      width: number;
+      tool: string;
+      isStart: boolean;
+    }) => {
+      setStreamingStrokes((prev) => {
+        const next = new Map(prev);
+        if (data.isStart) {
+          // Start a new streaming stroke
+          next.set(data.strokeId, {
+            strokeId: data.strokeId,
+            userId: data.userId,
+            points: [data.point],
+            color: data.color,
+            width: data.width,
+            tool: data.tool,
+          });
+        } else {
+          // Add point to existing streaming stroke
+          const existing = next.get(data.strokeId);
+          if (existing) {
+            next.set(data.strokeId, {
+              ...existing,
+              points: [...existing.points, data.point],
+            });
+          }
+        }
+        return next;
+      });
     });
 
     socket.on(SOCKET_EVENTS.CANVAS_CLEARED, () => {
@@ -111,10 +218,20 @@ export const useSocket = ({
 
     // Room deleted handler
     socket.on(SOCKET_EVENTS.ROOM_DELETED, () => {
-      setRoomDeleted(true);
+        setShowDeletedDialog(true)
     });
 
+    // Handle tab close/navigation - send leave room before unloading
+    const handleBeforeUnload = () => {
+      socket.emit(SOCKET_EVENTS.LEAVE_ROOM, { roomId, userId });
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      // Remove beforeunload listener
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Leave room and cleanup socket listeners
       socket.emit(SOCKET_EVENTS.LEAVE_ROOM, { roomId, userId });
       socket.off(SOCKET_EVENTS.CONNECT);
       socket.off(SOCKET_EVENTS.DISCONNECT);
@@ -125,10 +242,12 @@ export const useSocket = ({
       socket.off(SOCKET_EVENTS.USER_LEAVE);
       socket.off(SOCKET_EVENTS.USERS_LIST);
       socket.off(SOCKET_EVENTS.STROKE_RECEIVED);
+      socket.off(SOCKET_EVENTS.STROKE_STREAM_RECEIVED);
       socket.off(SOCKET_EVENTS.CANVAS_CLEARED);
       socket.off(SOCKET_EVENTS.CANVAS_STATE);
       socket.off(SOCKET_EVENTS.CURSOR_UPDATE);
       socket.off(SOCKET_EVENTS.ROOM_DELETED);
+      socket.io.off('reconnect');
       disconnectSocket();
     };
   }, [roomId, userId, userName, userColor]);
@@ -137,16 +256,27 @@ export const useSocket = ({
     socketRef.current?.emit(SOCKET_EVENTS.STROKE_ADD, { roomId, stroke });
   }, [roomId]);
 
+  const emitStrokeStream = useCallback((data: {
+    strokeId: string;
+    point: Point;
+    color: string;
+    width: number;
+    tool: string;
+    isStart: boolean;
+  }) => {
+    socketRef.current?.emit(SOCKET_EVENTS.STROKE_STREAM, { roomId, userId, ...data });
+  }, [roomId, userId]);
+
   const emitCursor = useCallback((position: Point | null) => {
     socketRef.current?.emit(SOCKET_EVENTS.CURSOR_MOVE, { roomId, userId, position });
   }, [roomId, userId]);
 
-  const emitUndo = useCallback((newStrokes: DrawingStroke[]) => {
-    socketRef.current?.emit(SOCKET_EVENTS.CANVAS_UNDO, { roomId, strokes: newStrokes });
+  const emitUndo = useCallback(() => {
+    socketRef.current?.emit(SOCKET_EVENTS.CANVAS_UNDO, { roomId });
   }, [roomId]);
 
-  const emitRedo = useCallback((newStrokes: DrawingStroke[]) => {
-    socketRef.current?.emit(SOCKET_EVENTS.CANVAS_REDO, { roomId, strokes: newStrokes });
+  const emitRedo = useCallback(() => {
+    socketRef.current?.emit(SOCKET_EVENTS.CANVAS_REDO, { roomId });
   }, [roomId]);
 
   const emitClear = useCallback(() => {
@@ -171,9 +301,11 @@ export const useSocket = ({
     isConnected,
     users,
     strokes,
+    streamingStrokes,
     error,
     roomDeleted,
     emitStroke,
+    emitStrokeStream,
     emitCursor,
     emitUndo,
     emitRedo,
