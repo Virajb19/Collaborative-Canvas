@@ -5,7 +5,7 @@ import { Trash2, Loader2 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { useRouter } from 'nextjs-toploader/app';
 import { api } from '~/trpc/react';
-import { getSocket } from '~/lib/socket';
+import { connectSocket, disconnectSocket } from '~/lib/socket';
 import { SOCKET_EVENTS } from '~/lib/socket.events';
 import { toast } from 'sonner';
 
@@ -20,14 +20,27 @@ export default function DeleteButton({ roomId }: DeleteButtonProps) {
 
     const deleteRoomMutation = api.room.delete.useMutation({
         onSuccess: async (data) => {
-            // Broadcast to all connected users in the room
-            const socket = getSocket();
-            if (socket) {
+            // Connect to socket and broadcast to all users in the room
+            const socket = connectSocket();
+
+            // Wait for socket to connect before emitting
+            const emitRoomDeleted = () => {
                 socket.emit(SOCKET_EVENTS.ROOM_DELETED, { roomId: data.roomId });
+                // Disconnect after a short delay to ensure the event is sent
+                setTimeout(() => {
+                    disconnectSocket();
+                }, 500);
+            };
+
+            if (socket.connected) {
+                emitRoomDeleted();
+            } else {
+                socket.once('connect', emitRoomDeleted);
             }
+
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            router.refresh();
-            
+
+            router.refresh();  
             // utils.user.getRooms.refetch();
         },
         onError: (err) => {

@@ -67,8 +67,6 @@ export default function RoomsContainer({ rooms }: RoomsContainerProps) {
     const [joinDialogOpen, setJoinDialogOpen] = useState(false);
     const router = useRouter();
 
-    // const { data: roomsData, isLoading, isError, isFetching, isRefetching, isFetched } = api.user.getRooms.useQuery();
-
     const particles = [
         { delay: 0, duration: 8, x: '10%', y: '80%', size: 8, color: 'bg-blue-500' },
         { delay: 1, duration: 10, x: '20%', y: '90%', size: 6, color: 'bg-purple-500' },
@@ -87,6 +85,12 @@ export default function RoomsContainer({ rooms }: RoomsContainerProps) {
             year: 'numeric'
         }).format(new Date(date));
     };
+
+    // const { data: rooms, isLoading, isError, isFetching, isRefetching, isFetched } = api.user.getRooms.useQuery();
+
+    // if (isLoading) return null;
+    // if (isError) return null;
+    // if (!rooms) return null;
 
     return (
         <div className="min-h-screen bg-background relative overflow-hidden">

@@ -20,19 +20,34 @@ export const userRouter = createTRPCRouter({
   getRooms: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
 
-    const rooms = await ctx.db.roomMember.findMany({
-      where: {
-        userId: Number(userId),
-        role: "OWNER",
-      },
-      include: {
-        room: true,
-      },
-      orderBy: {
-        joinedAt: "desc",
-      },
-    });
+     const rooms = await ctx.db.roomMember.findMany({
+           where: {
+               userId: Number(userId),
+               role: "OWNER",
+           },
+           include: {
+               room: {
+                   include: {
+                       _count: {
+                           select: { members: true }
+                       }
+                   }
+               },
+           },
+           orderBy: {
+               joinedAt: "desc",
+           },
+       });
 
-    return rooms.map((m) => m.room);
+    // return rooms.map((m) => m.room);
+
+    return rooms.map((room) => ({
+        id: room.room.id,
+        roomId: room.room.roomId,
+        name: room.room.name,
+        createdAt: room.room.createdAt,
+        memberCount: room.room._count.members,
+    }));
+
   }),
 })

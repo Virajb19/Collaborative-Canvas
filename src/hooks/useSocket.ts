@@ -31,6 +31,8 @@ interface UseSocketReturn {
   streamingStrokes: Map<string, StreamingStroke>;
   error: string | null;
   roomDeleted: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   emitStroke: (stroke: DrawingStroke) => void;
   emitStrokeStream: (data: { strokeId: string; point: Point; color: string; width: number; tool: string; isStart: boolean }) => void;
   emitCursor: (position: Point | null) => void;
@@ -54,6 +56,8 @@ export const useSocket = ({
   const [streamingStrokes, setStreamingStrokes] = useState<Map<string, StreamingStroke>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [roomDeleted, setRoomDeleted] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
 
   const { setShowDeletedDialog } = useRoomStore()
@@ -100,9 +104,16 @@ export const useSocket = ({
     });
 
     // Room handlers
-    socket.on(SOCKET_EVENTS.ROOM_JOINED, (data: { users: User[]; strokes: DrawingStroke[] }) => {
+    socket.on(SOCKET_EVENTS.ROOM_JOINED, (data: { 
+      users: User[]; 
+      strokes: DrawingStroke[];
+      canUndo?: boolean;
+      canRedo?: boolean;
+    }) => {
       setUsers(data.users);
       setStrokes(data.strokes);
+      if (data.canUndo !== undefined) setCanUndo(data.canUndo);
+      if (data.canRedo !== undefined) setCanRedo(data.canRedo);
     });
 
     socket.on(SOCKET_EVENTS.ROOM_ERROR, (data: { message: string }) => {
@@ -203,10 +214,28 @@ export const useSocket = ({
 
     socket.on(SOCKET_EVENTS.CANVAS_CLEARED, () => {
       setStrokes([]);
+      setCanUndo(false);
+      setCanRedo(false);
     });
 
-    socket.on(SOCKET_EVENTS.CANVAS_STATE, (data: { strokes: DrawingStroke[] }) => {
+    socket.on(SOCKET_EVENTS.CANVAS_STATE, (data: { 
+      strokes: DrawingStroke[]; 
+      canUndo?: boolean;
+      canRedo?: boolean;
+      action?: 'undo' | 'redo';
+      actionBy?: { id: string; name: string } | null;
+    }) => {
       setStrokes(data.strokes);
+      if (data.canUndo !== undefined) setCanUndo(data.canUndo);
+      if (data.canRedo !== undefined) setCanRedo(data.canRedo);
+      
+      // Show toast for undo/redo actions by other users
+      if (data.action && data.actionBy && data.actionBy.id !== userId) {
+        const actionText = data.action === 'undo' ? 'undid a stroke' : 'redid a stroke';
+        toast.info(`${data.actionBy.name} ${actionText}`, {
+          duration: 2000,
+        });
+      }
     });
 
     // Cursor handlers
@@ -253,6 +282,10 @@ export const useSocket = ({
   }, [roomId, userId, userName, userColor]);
 
   const emitStroke = useCallback((stroke: DrawingStroke) => {
+    // Add stroke to local state immediately (server only broadcasts to others)
+    setStrokes((prev) => [...prev, stroke]);
+    setCanUndo(true);
+    setCanRedo(false); // New stroke clears redo stack
     socketRef.current?.emit(SOCKET_EVENTS.STROKE_ADD, { roomId, stroke });
   }, [roomId]);
 
@@ -272,12 +305,12 @@ export const useSocket = ({
   }, [roomId, userId]);
 
   const emitUndo = useCallback(() => {
-    socketRef.current?.emit(SOCKET_EVENTS.CANVAS_UNDO, { roomId });
-  }, [roomId]);
+    socketRef.current?.emit(SOCKET_EVENTS.CANVAS_UNDO, { roomId, userId });
+  }, [roomId, userId]);
 
   const emitRedo = useCallback(() => {
-    socketRef.current?.emit(SOCKET_EVENTS.CANVAS_REDO, { roomId });
-  }, [roomId]);
+    socketRef.current?.emit(SOCKET_EVENTS.CANVAS_REDO, { roomId, userId });
+  }, [roomId, userId]);
 
   const emitClear = useCallback(() => {
     socketRef.current?.emit(SOCKET_EVENTS.CANVAS_CLEAR, { roomId });
@@ -304,6 +337,8 @@ export const useSocket = ({
     streamingStrokes,
     error,
     roomDeleted,
+    canUndo,
+    canRedo,
     emitStroke,
     emitStrokeStream,
     emitCursor,

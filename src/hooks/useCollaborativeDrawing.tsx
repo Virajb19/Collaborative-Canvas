@@ -42,6 +42,8 @@ export const useCollaborativeDrawing = (roomId: string) => {
         streamingStrokes,
         error,
         roomDeleted,
+        canUndo,
+        canRedo,
         emitStroke,
         emitStrokeStream,
         emitCursor,
@@ -55,13 +57,35 @@ export const useCollaborativeDrawing = (roomId: string) => {
         userColor: currentUser?.color || USER_COLORS[0] as string,
     });
 
+    // Throttle cursor updates to ~30fps to reduce network traffic
+    const lastCursorUpdateRef = useRef<number>(0);
+    const pendingCursorRef = useRef<Point | null>(null);
+    const cursorThrottleMs = 33; // ~30fps
+
     const addStroke = useCallback((stroke: DrawingStroke) => {
         emitStroke(stroke);
     }, [emitStroke]);
 
     const updateCursor = useCallback((position: Point | null) => {
         if (!currentUser) return;
-        emitCursor(position);
+
+        // If position is null (cursor left), send immediately
+        if (position === null) {
+            emitCursor(null);
+            pendingCursorRef.current = null;
+            return;
+        }
+
+        // Throttle cursor updates
+        const now = Date.now();
+        if (now - lastCursorUpdateRef.current >= cursorThrottleMs) {
+            emitCursor(position);
+            lastCursorUpdateRef.current = now;
+            pendingCursorRef.current = null;
+        } else {
+            // Store pending update for next throttle window
+            pendingCursorRef.current = position;
+        }
     }, [currentUser, emitCursor]);
 
     const streamStrokePoint = useCallback((data: {
@@ -98,8 +122,8 @@ export const useCollaborativeDrawing = (roomId: string) => {
         undo,
         redo,
         clearCanvas,
-        canUndo: strokes.length > 0,
-        canRedo: true, // Optimistically allow redo
+        canUndo,
+        canRedo,
         isConnected,
         error,
         roomDeleted,

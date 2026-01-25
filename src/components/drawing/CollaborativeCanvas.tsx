@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import type { Tool } from '~/types/drawing';
 import { useCollaborativeDrawing } from '~/hooks/useCollaborativeDrawing';
 import { DrawingCanvas } from '~/components/drawing/DrawingCanvas';
@@ -6,6 +7,7 @@ import { Toolbar } from './ToolBar';
 import { UserCursors } from './UserCursors';
 import { UsersPanel } from './UsersPanel';
 import { useRoomStore } from '~/lib/store';
+import { LeaveRoomButton } from '~/components/LeaveRoomButton';
 import type { RoomMemberWithUser } from '~/components/Room';
 
 // ...
@@ -16,10 +18,16 @@ interface CollaborativeCanvasProps {
 }
 
 export const CollaborativeCanvas = ({ roomId, roomMembers }: CollaborativeCanvasProps) => {
+  const { data: session } = useSession();
   const { setShowDeletedDialog } = useRoomStore();
   const [currentTool, setCurrentTool] = useState<Tool>('brush');
   const [currentColor, setCurrentColor] = useState('#000000');
   const [currentWidth, setCurrentWidth] = useState(8);
+
+  // Check if current user is owner
+  const isOwner = session?.user?.id
+    ? roomMembers.some(m => m.user.id === parseInt(session.user.id) && m.role === 'OWNER')
+    : false;
 
   const {
     strokes,
@@ -92,15 +100,23 @@ export const CollaborativeCanvas = ({ roomId, roomMembers }: CollaborativeCanvas
         <UserCursors users={users} currentUserId={currentUser.id} />
       </div>
 
-      {/* Room ID badge with connection status */}
-      <div className="fixed top-4 left-4 z-50">
-        <div className="bg-card rounded-lg shadow-panel px-3 py-2 flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-xs text-muted-foreground">Room: </span>
-          <span className="text-sm font-mono font-medium">{roomId}</span>
+      {/* Top left controls - Connection status and Leave button */}
+      <div className="fixed top-20 left-4 z-40 flex flex-col gap-2">
+        {/* Connection status badge */}
+        <div className="bg-card/90 backdrop-blur-sm rounded-xl shadow-lg px-4 py-2.5 flex items-center gap-3 border border-border/50">
+          <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${isConnected ? 'bg-green-500 shadow-[0_0_8px_2px_rgba(34,197,94,0.4)]' : 'bg-red-500 shadow-[0_0_8px_2px_rgba(239,68,68,0.4)]'}`} />
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Room</span>
+            <span className="text-sm font-mono font-bold text-foreground">{roomId}</span>
+          </div>
         </div>
+
+        {/* Leave Room button - only show for non-owners */}
+        {!isOwner && <LeaveRoomButton roomId={roomId} />}
+
+        {/* Error message */}
         {error && (
-          <div className="mt-2 bg-destructive/10 text-destructive text-xs px-3 py-2 rounded-lg">
+          <div className="bg-destructive/10 backdrop-blur-sm text-destructive text-xs px-4 py-2 rounded-xl border border-destructive/20">
             {error}
           </div>
         )}
