@@ -388,12 +388,12 @@ const Index = () => {
                   delay: 0.9 + i * 0.08,
                   ease: 'easeInOut'
                 }}
-                whileHover={{
-                  // scale: 1.08, 
-                  y: -5,
-                  transition: { duration: 0.2 }
-                }}
-                className="group relative text-center p-4 rounded-2xl bg-white backdrop-blur-lg border border-transparent hover:border-blue-400 hover:bg-white/20 transition-colors duration-300 cursor-default overflow-hidden"
+                // whileHover={{
+                //   scale: 1.08, 
+                //   y: -5,
+                //   transition: { duration: 0.2 }
+                // }}
+                className="group relative text-center hover:-translate-y-2 p-4 rounded-2xl bg-white backdrop-blur-lg border border-transparent hover:border-blue-400 hover:bg-white/20 transition-colors duration-300 cursor-default overflow-hidden"
               >
                 {/* Hover glow */}
                 <motion.div
